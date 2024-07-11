@@ -34,6 +34,8 @@ List<Map<String, String>> returnIdentifications = UtilGenerics.checkList(returnM
 List<String> tagsList = UtilGenerics.checkList(returnMap.get("tags"));
 ```
 
+## Validations
+
 ### Order level validations
 
 Several validation are added in the data received from payload.
@@ -55,11 +57,11 @@ Besides, it applies different validations in these fields:
   - externalCustomerId
   - customerIdentificationType and customerIdentificationValue
 - If `customerIdentificationType` and `customerIdentificationValue` are available, then it is checked if they are present in **PartyIdentification** entity. If they are present, `partyId` received from **PartyIdentification** entity is stored in `customerId` 
-- If customerId is empty and externalCustomerId is present then customerId is set to partyId retrieved using party's externalId
-- Either companyId or externalCompanyId is required
+- If `customerId` is empty and `externalCustomerId` is present then `customerId` is set to `partyId` retrieved using party's `externalId`
+- Either `companyId` or `externalCompanyId` is required
 
   
-### Iterating in items
+### Item Validations
 
 If items exist in payload, it iterates in it. In each iteration:
 
@@ -78,8 +80,138 @@ String orderExternalId = (String) item.get("orderExternalId");
 
 #### Item validations
 
+1. Product:
+
+```java
+if (UtilValidate.isEmpty(sku) && UtilValidate.isEmpty(productId) && (UtilValidate.isEmpty(idType) && UtilValidate.isEmpty(idValue))) {
+     errorList.add(UtilProperties.getMessage("CommerceUiLabels", "EitherProductOrSkuOrIdTypeAndIdValueRequired", locale));
+}
+```
+The code checks if the SKU (stock keeping unit), productId, and ID type and ID value for the return item are all empty. If all these fields are empty, it means that the system cannot identify the product associated with the return item and an error message is added in it.
+
+After that in the below code validation is applied using DB query based on available data:
+
+- Either productId or sku is available (first and second condition)
+- Both sku and productId are available (third condition)
+- sku and productId both are not available but idType and idValue are available (fourth condition)
+
+```java
+if (UtilValidate.isEmpty(productId) && UtilValidate.isNotEmpty(sku)) {
+    long products = EntityQuery.use(delegator).from("Product").where("internalName", sku).queryCount();
+    if (products == 0) {
+        errorList.add(UtilProperties.getMessage("CommerceUiLabels", "InvalidOrderItemSku", locale));
+    }
+}
+if (UtilValidate.isEmpty(sku) && UtilValidate.isNotEmpty(productId)) {
+    long products = EntityQuery.use(delegator).from("Product").where("productId", productId).queryCount();
+    if (products == 0) {
+        errorList.add(UtilProperties.getMessage("CommerceUiLabels", "InvalidProductId", locale));
+    }
+}
+
+if (UtilValidate.isNotEmpty(sku) && UtilValidate.isNotEmpty(productId)) {
+    long product = EntityQuery.use(delegator).from("Product").where("internalName", sku, "productId", productId).queryCount();
+    if (product == 0) {
+        errorList.add(UtilProperties.getMessage("ApiUiLabels", "SkuAndProductIdNotAssociated", locale));
+    }
+}
+
+if (UtilValidate.isEmpty(sku) && UtilValidate.isEmpty(productId) && (UtilValidate.isNotEmpty(idType) && UtilValidate.isNotEmpty(idValue))) {
+    if ("SKU".equals(idType)) {
+        idType = null;
+    }
+    productId = NamespaceHelper.getProductId(delegator, idValue, idType);
+    if (UtilValidate.isEmpty(productId)) {
+        errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidProductIdTypeAndIdValue", UtilMisc.toMap("idType", idType, "idValue", idValue), locale));
+    }
+}
+```
+
+2. Order and item:
+
+Four validations are applied on order items based on available data:
+- If orderExternalId or orderId are available (first and second condition)
+- If both are available, then it is checked if they are associated to each other or not (third condition)
+- If both orderId or orderExternalId are not available but orderName is available
+
+```java
+if (UtilValidate.isNotEmpty(orderExternalId)) {
+    long orderCount = EntityQuery.use(delegator).from("OrderHeader").where("externalId", orderExternalId).queryCount();
+    if (orderCount == 0) {
+        errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidOrderExternalId", locale));
+    }
+}
+if (UtilValidate.isNotEmpty(orderId)) {
+    long orderCount = EntityQuery.use(delegator).from("OrderHeader").where("orderId", orderId).queryCount();
+    if (orderCount == 0) {
+        errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidOrderId", locale));
+    }
+}
+
+if (UtilValidate.isNotEmpty(orderId) && UtilValidate.isNotEmpty(orderExternalId)) {
+    long orderCount =
+            EntityQuery.use(delegator).from("OrderHeader").where("orderId", orderId, "externalId", orderExternalId).queryCount();
+    if (orderCount == 0) {
+        errorList.add(UtilProperties.getMessage("ApiUiLabels", "OrderExternalIdAndOrderIdNotAssociated", locale));
+    }
+}
+
+if (UtilValidate.isEmpty(orderId) && UtilValidate.isEmpty(orderExternalId) && UtilValidate.isNotEmpty(item.get("orderName"))) {
+    long orderCount = EntityQuery.use(delegator).from("OrderHeader").where("orderName", item.get("orderName")).queryCount();
+    if (orderCount == 0) {
+        errorList.add("Invalid Order Name.");
+    }
+}
+```
+
+### Return Adjustment Validation
+
+If return adjusments are available, then we are iterating in the `returnAdjustments`. For each return adjustment, code verifies if there is a return adjustment type with the given type in the system. If no such return adjustment type exists, an error message is added to the error list.
+
+```java
+if (UtilValidate.isNotEmpty(returnAdjustments)) {
+    for (Map<String, Object> returnAdjustment : returnAdjustments) {
+        Map<String, Object> returnAdjustmentCtx = new HashMap<>();
+        String type = (String) returnAdjustment.get("type");
+
+        if (UtilValidate.isNotEmpty(type)) {
+            long adjustmentType =
+                    EntityQuery.use(delegator).from("ReturnAdjustmentType").where("returnAdjustmentTypeId", type).queryCount();
+            if (adjustmentType == 0) {
+                errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidReturnAdjustmentType" + type, locale));
+            }
+        }
+    }
+}
+```
 
 
+### Ship From validation
 
+Validates Contact Mechanisms. The code retrieves the ship from information and the postal address associated with it
 
-
+```java
+if (UtilValidate.isNotEmpty(shipFrom)) {
+    long shipFromContactMech;
+    Map<String, Object> shipFromPostalAddress = UtilGenerics.checkMap(shipFrom.get("postalAddress"));
+    String shipFromPostalAddressContactMechId = (String) shipFromPostalAddress.get("id");
+    String shipFromPostalAddressExternalId = (String) shipFromPostalAddress.get("externalId");
+    if (UtilValidate.isNotEmpty(shipFromPostalAddressExternalId)) {
+        shipFromContactMech =
+                EntityQuery.use(delegator).from("ContactMech").where("externalId", shipFromPostalAddressExternalId).cache().queryCount();
+        if (shipFromContactMech == 0) {
+            errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidShipFromPostalAddressExternalId", UtilMisc.toMap("externalId"
+                    , shipFromPostalAddressExternalId), locale));
+        }
+    }
+    if (UtilValidate.isNotEmpty(shipFromPostalAddressContactMechId)) {
+        shipFromContactMech =
+                EntityQuery.use(delegator).from("ContactMech").where("contactMechId", shipFromPostalAddressContactMechId).cache().queryCount();
+        if (shipFromContactMech == 0) {
+            errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidShipFromPostalAddressId", UtilMisc.toMap("contactMechId",
+                    shipFromPostalAddressContactMechId), locale));
+        }
+    }
+    /*Validation for telecom number and email address is not handled because we do not store both of then in the return data model*/
+}
+```
