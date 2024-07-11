@@ -188,7 +188,11 @@ if (UtilValidate.isNotEmpty(returnAdjustments)) {
 
 ### Ship From validation
 
-Validates Contact Mechanisms. The code retrieves the ship from information and the postal address associated with it
+Validates Contact Mechanisms. The code retrieves the ship from information and the postal address associated with it. 
+
+It checks if the postal address has an `externalId` or a `contactMechId`. If the postal address has an `externalId`, the code verifies if there is a contact mech with the given `externalId` in the system. If no such contact mech exists, an error message is added to the error list.
+
+If the postal address has a `contactMechId`, the code verifies if there is a contact mech with the given `contactMechId` in the system. If no such contact mech exists, an error message is added to the error list.
 
 ```java
 if (UtilValidate.isNotEmpty(shipFrom)) {
@@ -215,3 +219,6 @@ if (UtilValidate.isNotEmpty(shipFrom)) {
     /*Validation for telecom number and email address is not handled because we do not store both of then in the return data model*/
 }
 ```
+
+
+###
