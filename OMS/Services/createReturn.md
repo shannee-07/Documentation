@@ -355,4 +355,24 @@ if (UtilValidate.isNotEmpty((String) returnMap.get("returnChannelEnumId"))) {
 }
 ```
 
-#### 
+#### Creating Return Header
+
+Calling the service [createReturnHeader](https://github.com/shannee-07/Documentation/blob/main/OMS/Services/createReturn.md) and passing the created map returnHeaderInfo into it. Added a new try catch block to handle error specific to this service
+
+```java
+try {
+    serviceResult = dispatcher.runSync("createReturnHeader", returnHeaderInfo);
+    returnId = (String) serviceResult.get("returnId");
+    if (!ServiceUtil.isSuccess(serviceResult)) {
+        return ServiceUtil.returnError(ServiceUtil.getErrorMessage(serviceResult));
+    }
+} catch (GenericServiceException e) {
+    Debug.logError(e, MODULE);
+    return ServiceUtil.returnError(ServiceUtil.getErrorMessage(serviceResult));
+}
+```
+
+## Setting return item and item adjustments
+
+If items exists, iterating into items List and perform these actions in each iteration:
+
