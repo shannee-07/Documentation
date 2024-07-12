@@ -220,5 +220,62 @@ if (UtilValidate.isNotEmpty(shipFrom)) {
 }
 ```
 
+### Ship To Validation
 
-###
+Checks if facilityId and externalFacilityId exists in the system if given.
+
+```java
+if (UtilValidate.isNotEmpty(shipTo)) {
+    long facility;
+    String facilityId = (String) shipTo.get("facilityId");
+    String externalFacilityId = (String) shipTo.get("externalId");
+    if (UtilValidate.isNotEmpty(externalFacilityId)) {
+        facility = EntityQuery.use(delegator).from("Facility").where("externalId", externalFacilityId).cache().queryCount();
+        if (facility == 0) {
+            errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidShipToExternalFacilityId", UtilMisc.toMap("externalId",
+                    externalFacilityId), locale));
+        }
+    }
+    if (UtilValidate.isNotEmpty(facilityId)) {
+        facility = EntityQuery.use(delegator).from("Facility").where("facilityId", facilityId).cache().queryCount();
+        if (facility == 0) {
+            errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidShipToFacilityId", UtilMisc.toMap("facilityId", facilityId),
+                    locale));
+        }
+    }
+}
+```
+
+### Return identification Validation
+
+If returnIdentifications is available then each of the returnIdentification in it is validated:
+- `returnIdentificationTypeId` is mandatory in every returnIdentification, if it does not exist then error message is added
+- A query is perfomed on **Enumeration** table to validate `returnIdentificationTypeId` for enumTypeId="RETURN_IDENTITY"
+- Error messgae is added if `returnIdentificationTypeId` is not found in the system or idValue does not exist in the returnIdentification
+
+```java
+if (UtilValidate.isNotEmpty(returnIdentifications)) {
+    for (Map<String, String> returnIdentification : returnIdentifications) {
+        if (UtilValidate.isNotEmpty(returnIdentification.get("returnIdentificationTypeId"))) {
+            long returnIdentificationCount = EntityQuery.use(delegator).from("Enumeration").where("enumId", returnIdentification.get(
+                    "returnIdentificationTypeId"), "enumTypeId", "RETURN_IDENTITY").queryCount();
+            if (returnIdentificationCount == 0) {
+                errorList.add(UtilProperties.getMessage("ApiUiLabels", "InvalidReturnIdentificationTypeId", locale));
+            }
+            if (UtilValidate.isEmpty(returnIdentification.get("idValue"))) {
+                errorList.add(UtilProperties.getMessage("ApiUiLabels", "IdValueCannotBeEmpty", locale));
+            }
+        } else {
+            errorList.add(UtilProperties.getMessage("ApiUiLabels", "ReturnIdentificationTypeIdRequired", locale));
+        }
+    }
+}
+```
+
+Finally in the validation process, if errorList contains any item means one or more validation is failed then error is returned with errorList:
+
+```java
+if (UtilValidate.isNotEmpty(errorList)) {
+    return ServiceUtil.returnError(errorList);
+}
+```
