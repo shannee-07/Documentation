@@ -279,3 +279,80 @@ if (UtilValidate.isNotEmpty(errorList)) {
     return ServiceUtil.returnError(errorList);
 }
 ```
+
+## Getting Origin and Destination Facility ID:
+
+#### Origin Facility ID:
+
+A `shipFromPostalAddressContactMechId` is initialized and contactMechId is fetched using the given shipFrom data:
+
+- If `shipFrom` exists, postalAddress is fetched from it and its `id` is stored in `shipFromPostalAddressContactMechId` and `externalId` is stored in `shipFromPostalAddressExternalId`
+- If `shipFromPostalAddressExternalId` exists, then `contactMechId` is fetched using it in the **ContactMech** entity and assigned in the `shipFromPostalAddressContactMechId` variable
+
+This means we only need contactMechId for origin faciity ID
+
+```java
+String shipFromPostalAddressContactMechId = null;
+if (UtilValidate.isNotEmpty(shipFrom)) {
+    Map<String, Object> shipFromPostalAddress = UtilGenerics.checkMap(shipFrom.get("postalAddress"));
+    shipFromPostalAddressContactMechId = (String) shipFromPostalAddress.get("id");
+    String shipFromPostalAddressExternalId = (String) shipFromPostalAddress.get("externalId");
+
+    if (UtilValidate.isNotEmpty(shipFromPostalAddressExternalId)) {
+        GenericValue shipFromContactMech = EntityQuery.use(delegator).from("ContactMech").where("externalId",
+                shipFromPostalAddressExternalId).cache().queryFirst();
+        shipFromPostalAddressContactMechId = shipFromContactMech.getString("contactMechId");
+    }
+}
+```
+
+#### Destination Facility ID:
+
+`facilityId` is populated from `shipTo`'s available `facilityId`. If `externalId` is present in `shipTo`, we are querying the **Facility** entity and getting the `facilityId` from it.
+
+```java
+String facilityId = null;
+if (UtilValidate.isNotEmpty(shipTo)) {
+    facilityId = (String) shipTo.get("facilityId");
+    String externalFacilityId = (String) shipTo.get("externalId");
+    if (UtilValidate.isNotEmpty(externalFacilityId)) {
+        GenericValue facility = EntityQuery.use(delegator).from("Facility").where("externalId", externalFacilityId).cache().queryFirst();
+        facilityId = facility.getString("facilityId");
+    }
+}
+```
+
+## Creating Return Header:
+
+Initializing a returnHeaderInfo map and populating all the required data fetched previously
+
+```java
+Map<String, Object> returnHeaderInfo = new HashMap<>();
+returnHeaderInfo.put("userLogin", userLogin);
+returnHeaderInfo.put("externalId", externalId);
+returnHeaderInfo.put("returnHeaderTypeId", returnHeaderTypeId);
+returnHeaderInfo.put("statusId", returnStatusId);
+returnHeaderInfo.put("fromPartyId", customerId);
+returnHeaderInfo.put("toPartyId", companyId);
+returnHeaderInfo.put("entryDate", UtilDateTime.nowTimestamp());
+returnHeaderInfo.put("originContactMechId", shipFromPostalAddressContactMechId);
+returnHeaderInfo.put("destinationFacilityId", facilityId);
+returnHeaderInfo.put("currencyUomId", currencyCode);
+returnHeaderInfo.put("returnDate", returnDate);
+returnHeaderInfo.put("employeeId", returnMap.get("employeeId"));
+returnHeaderInfo.put("terminalId", returnMap.get("terminalId"));
+```
+
+#### Setting Return Channel:
+
+If `returnChannelEnumId` is present in the returnMap then populating it. If it is not present, then by default return channel will be "ECOM_RTN_CHANNEL"
+
+```java
+if (UtilValidate.isNotEmpty((String) returnMap.get("returnChannelEnumId"))) {
+    returnHeaderInfo.put("returnChannelEnumId", (String) returnMap.get("returnChannelEnumId"));
+} else {
+    returnHeaderInfo.put("returnChannelEnumId", "ECOM_RTN_CHANNEL");
+}
+```
+
+#### 
