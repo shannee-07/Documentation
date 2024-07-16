@@ -22,7 +22,7 @@ Here's a step-by-step explanation of the code:
 - Validates the input parameters and retrieves the shipping details using the ShippingAggregatorHelper.getShippingDetails (TODO) method.
 - Uses CanadaPostHelper.getConfig (TODO) method  to get configuration details
 - From the result obtained form it, it prepares the request context for sending the rate request to Canada Post, including the necessary headers, template content ID, and endpoint.
-- Sends the rate request to Canada Post using the ShippingAggregatorHelper.sendRequest method.
+- Sends the rate request to Canada Post using the ShippingAggregatorHelper.sendRequest(TODO) method.
 - Handles the response from Canada Post and updates the shipment package route segment with any error messages.
 - Returns the shipping rates in the response.
 
