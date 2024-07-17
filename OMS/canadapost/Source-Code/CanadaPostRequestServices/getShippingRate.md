@@ -22,7 +22,7 @@ Here's a step-by-step explanation of the code:
 - Validates the input parameters and retrieves Shipment details by querying on Shipment entity using shipmentId from context.
 - Retrieves the shipping details using the ShippingAggregatorHelper.getShippingDetails (TODO) method.
 - Uses [CanadaPostHelper.getConfig](https://github.com/shannee-07/Documentation/blob/main/OMS/canadapost/Source-Code/CanadaPostHelper/getConfig.md) method  to get configuration details
-- From the result obtained form it, it prepares the request context for sending the rate request to Canada Post, including the necessary headers, template content ID, and endpoint.
+- From the result obtained from it, it prepares the request context for sending the rate request to Canada Post, including the necessary headers, template content ID, and endpoint.
 - Sends the rate request to Canada Post using the ShippingAggregatorHelper.sendRequest(TODO) method.
 - Handles the response from Canada Post using canadaPostResponseServices.handleShippingRateResponse(TODO) methodand updates the shipment package route segment with any error messages.
 - Returns the shipping rates in the response.
