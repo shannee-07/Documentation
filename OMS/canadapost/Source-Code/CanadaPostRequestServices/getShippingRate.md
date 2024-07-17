@@ -24,7 +24,7 @@ Here's a step-by-step explanation of the code:
 - Uses [CanadaPostHelper.getConfig](https://github.com/shannee-07/Documentation/blob/main/OMS/canadapost/Source-Code/CanadaPostHelper/getConfig.md) method  to get configuration details
 - From the result obtained from it, it prepares the request context for sending the rate request to Canada Post, including the necessary headers, template content ID, and endpoint.
 - Sends the rate request to Canada Post using the ShippingAggregatorHelper.sendRequest(TODO) method.
-- Handles the response from Canada Post using canadaPostResponseServices.handleShippingRateResponse(TODO) methodand updates the shipment package route segment with any error messages.
+- Handles the response from Canada Post using [canadaPostResponseServices.handleShippingRateResponse](https://github.com/shannee-07/Documentation/blob/main/OMS/canadapost/Source-Code/CanadaPostResposeServices/handleShippingRateResponse.md) method and updates the shipment package route segment with any error messages.
 - Returns the shipping rates in the response.
 
 2. The createContractShipment method:
