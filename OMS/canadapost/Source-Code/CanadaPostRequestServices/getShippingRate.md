@@ -1,6 +1,6 @@
 **Package:**
 ```java
-import co.hotwax.canadapost.CandaPostRequestServices.java
+import co.hotwax.canadapost.CandaPostRequestServices
 ```
 
 **Service Definition:**
@@ -15,7 +15,8 @@ import co.hotwax.canadapost.CandaPostRequestServices.java
 
 **Code Explantion:**
 
-Here's a step-by-step explanation of the code:
+Here's a step-by-step explanation of the code:Get Artifact: This API is used to retrieve artifacts such as shipping labels from Canada Post. It sends a request to Canada Post to fetch the artifact and receives the response.
+
 
 1. The getShippingRate method:
 - Retrieves the necessary details from the context, such as the shipment ID, shipment method type ID, and carrier party ID.
